@@ -21,3 +21,6 @@
 # Localized tmp files
 Localizable.strings.new
 Localizable.strings.old
+
+# config
+*Config.m
