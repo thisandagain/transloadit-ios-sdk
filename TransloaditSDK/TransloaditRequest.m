@@ -1,59 +1,192 @@
 #import "TransloaditRequest.h"
 
-@implementation TransloaditRequest
-@synthesize params, response;
+@interface TransloaditRequest ()
+@property (readwrite) NSMutableDictionary *post;
+@property NSString *key;
+@property NSString *secret;
+@end
 
-#pragma mark public
+static const NSString *host = @"http://api2.transloadit.com";
+
+@implementation TransloaditRequest
+
+#pragma mark - Init
 
 /**
  * Initializes the TransloaditRequest object w/ API credentials.
  *
- * @param  NSString  API Key (see: https://transloadit.com/accounts/credentials )
- * @param  NSString  API Secret (see: https://transloadit.com/accounts/credentials )
+ * @param {NSString} API Key (see: https://transloadit.com/accounts/credentials )
+ * @param {NSString} API Secret (see: https://transloadit.com/accounts/credentials )
  *
- * @returns  id
+ * @returns {id}
  */
-- (id)initWithCredentials:(NSString *)key secret:(NSString *)secretKey
+- (id)initWithCredentials:(NSString *)key secret:(NSString *)secret
+{    
+    self = [super initWithBaseURL:[NSURL URLWithString:[host copy]]];
+    if (self) {
+        // Init
+        _post = [[NSMutableDictionary alloc] init];
+        
+        // Setup
+        self.key = key;
+        self.secret = secret;
+        [self registerHTTPOperationClass:[AFJSONRequestOperation class]];
+        [self setDefaultHeader:@"Content-Type" value:@"application/json"];
+    }
+    return self;
+}
+
+#pragma mark - Public methods
+
+/**
+ * Uploads a local file using the provided parameters.
+ *
+ * @param {NSURL} Local file path
+ * @param {NSString} File name (eg: @"myFile.jpg")
+ * @param {NSString} MIME type (eg: @"image/jpg")
+ * @param {NSString} Template id
+ *
+ * @returns {block}
+ */
+- (void)processFile:(NSURL *)path withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id))success failure:(void (^)(id, NSError *))failure
 {
-	NSURL *serviceUrl = [NSURL URLWithString:@"http://api2.transloadit.com/assemblies?pretty=true"];
-	[super initWithURL:serviceUrl];
-
-	params = [[NSMutableDictionary alloc] init];
-	secret = secretKey;
-
-	NSMutableDictionary *auth = [[NSMutableDictionary alloc] init];
-	[auth setObject:key forKey:@"key"];
-	[params setObject:auth forKey:@"auth"];
-	[auth release];
-
-	return self;
+    NSData *data = [NSData dataWithContentsOfURL:path];
+    [self processData:data withFileName:filename contentType:mime template:template success:^(id request) {
+        success(self);
+    } failure:^(id request, NSError *error) {
+        failure(self, error);
+    }];
 }
 
 /**
- * Adds a file (from local path) to the transloadit request.
+ * Uploads an NSData object using the provided parameters.
  *
- * @param  NSString  File path
- * @param  NSString  File name (eg: @"myFile.wav")
- * @param  NSString  MIME type (eg: @"audio/wav")
+ * @param {NSData} Data object
+ * @param {NSString} File name (eg: @"myFile.wav")
+ * @param {NSString} MIME type (eg: @"audio/wav")
+ * @param {NSString} Template id
  *
- * @returns  void
+ * @returns {block}
  */
-- (void)addRawFile:(NSString *)path withFileName:(NSString *)filename addContentType:(NSString *)type
+- (void)processData:(NSData *)data withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id))success failure:(void (^)(id, NSError *))failure
+{
+    // Set post body
+    NSDictionary *params    = @{
+        @"template_id": template,
+        @"auth": @{
+            @"key":     self.key,
+            @"expires": [self generateExpires]
+        }
+    };
+    [self.post setObject:[self generateJsonString:params] forKey:@"params"];
+    [self.post setObject:[self generateSignature:[self.post objectForKey:@"params"] secret:self.secret] forKey:@"signature"];
+    
+    // Create request
+    NSURLRequest *request = [self multipartFormRequestWithMethod:@"POST" path:@"/assemblies" parameters:self.post constructingBodyWithBlock: ^(id <AFMultipartFormData> form) {
+        [form appendPartWithFileData:data name:@"upload" fileName:filename mimeType:mime];
+    }];
+    
+    // Request operation
+    AFJSONRequestOperation *operation = [AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
+        if ([response statusCode] >= 200 && [response statusCode] <= 299) {
+            success(self);
+        } else {
+            failure(self, nil);
+        }
+    } failure:^(NSURLRequest *request , NSHTTPURLResponse *response , NSError *error , id JSON) {
+        NSLog(@"Request: %@", request);
+        NSLog(@"Response: %@", response);
+        NSLog(@"JSON: %@", JSON);
+        failure(self, error);
+    }];
+    
+    [operation start];
+}
+
+#pragma mark - Private methods
+
+- (NSString *)generateExpires
+{
+    NSDateFormatter *format = [[NSDateFormatter alloc] init];
+	[format setDateFormat:@"yyyy-MM-dd HH:mm-ss 'GMT'"];
+    
+	NSDate *localExpires            = [[NSDate alloc] initWithTimeIntervalSinceNow:60*60];
+	NSTimeInterval timeZoneOffset   = [[NSTimeZone defaultTimeZone] secondsFromGMT];
+	NSTimeInterval gmtTimeInterval  = [localExpires timeIntervalSinceReferenceDate] - timeZoneOffset;
+	NSDate *gmtExpires              = [NSDate dateWithTimeIntervalSinceReferenceDate:gmtTimeInterval];
+    
+    return [format stringFromDate:gmtExpires];
+}
+
+- (NSString *)generateSignature:(NSString *)params secret:(NSString *)secret
+{
+    return [self stringWithHexBytes:[self hmacSha1withKey:secret forString:params]];
+}
+
+- (NSString *)generateJsonString:(id)dict
+{
+    NSString *json = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:dict options:nil error:nil] encoding:NSUTF8StringEncoding];
+    return json;
+}
+
+#pragma mark - Utility methods
+
+// from: http://stackoverflow.com/questions/476455/is-there-a-library-for-iphone-to-work-with-hmac-sha-1-encoding
+- (NSData *)hmacSha1withKey:(NSString *)key forString:(NSString *)string
+{
+	NSData *clearTextData = [string dataUsingEncoding:NSUTF8StringEncoding];
+	NSData *keyData = [key dataUsingEncoding:NSUTF8StringEncoding];
+	
+	uint8_t digest[CC_SHA1_DIGEST_LENGTH] = {0};
+	
+	CCHmacContext hmacContext;
+	CCHmacInit(&hmacContext, kCCHmacAlgSHA1, keyData.bytes, keyData.length);
+	CCHmacUpdate(&hmacContext, clearTextData.bytes, clearTextData.length);
+	CCHmacFinal(&hmacContext, digest);
+	
+	return [NSData dataWithBytes:digest length:CC_SHA1_DIGEST_LENGTH];
+}
+
+// from: http://notes.stripsapp.com/nsdata-to-nsstring-as-hex-bytes/
+- (NSString *)stringWithHexBytes:(NSData *)data
+{
+	static const char hexdigits[] = "0123456789abcdef";
+	const size_t numBytes = [data length];
+	const unsigned char* bytes = [data bytes];
+	char *strbuf = (char *)malloc(numBytes * 2 + 1);
+	char *hex = strbuf;
+	NSString *hexBytes = nil;
+	
+	for (int i = 0; i<numBytes; ++i) {
+		const unsigned char c = *bytes++;
+		*hex++ = hexdigits[(c >> 4) & 0xF];
+		*hex++ = hexdigits[(c ) & 0xF];
+	}
+	*hex = 0;
+	hexBytes = [NSString stringWithUTF8String:strbuf];
+	free(strbuf);
+	return hexBytes;
+}
+
+#pragma mark - Dealloc
+
+- (void)dealloc
+{
+    _post = nil;
+    
+    _key = nil;
+    _secret = nil;
+}
+
+/*
+
+- (void)addRawFile:(NSURL *)path withFileName:(NSString *)filename addContentType:(NSString *)type
 {
     uploads++;
     NSString *field = [NSString stringWithFormat:@"upload_%i", uploads];
     [self setFile:path withFileName:filename andContentType:type forKey:field];
 }
 
-/**
- * Adds raw data to transloadit request.
- *
- * @param  NSData  Asset data
- * @param  NSString  File name (eg: @"myFile.mov")
- * @param  NSString  MIME type (eg: @"video/quicktime")
- *
- * @returns  void
- */
 - (void)addRawData:(NSData *)data withFileName:(NSString *)filename addContentType:(NSString *)type
 {
     uploads++;
@@ -61,50 +194,6 @@
     [self setData:data withFileName:filename andContentType:type forKey:field];
 }
 
-/**
- * Adds file from a UIImagePickerController to transloadit request.
- *
- * @param  NSDictionary  Asset
- *
- * @returns  void
- */
-- (void)addPickedFile:(NSDictionary *)info
-{
-	uploads++;
-	NSString *field = [NSString stringWithFormat:@"upload_%i", uploads];
-	[self addPickedFile:info forField:field];
-}
-
-/**
- * Adds file from a UIImagePickerController to transloadit request w/ field.
- *
- * @param  NSDictionary  Asset
- * @param  NSString  Field
- *
- * @returns  void
- */
-- (void)addPickedFile:(NSDictionary *)info forField:(NSString *)field;
-{
-	NSString *mediaType = [info objectForKey:UIImagePickerControllerMediaType];
-
-	if ([mediaType isEqualToString:@"public.image"]) {
-		backgroundTasks++;
-		NSMutableDictionary *file = [[NSMutableDictionary alloc] init];
-		[file setObject:info forKey:@"info"];
-		[file setObject:field forKey:@"field"];
-		[self performSelectorInBackground:@selector(saveImageToDisk:) withObject:file];
-	} else if ([mediaType isEqualToString:@"public.movie"]) {
-		NSURL *fileUrl = [info valueForKey:UIImagePickerControllerMediaURL];
-		NSString *filePath = [fileUrl path];
-		[self setFile:filePath withFileName:@"iphone_video.mov" andContentType: @"video/quicktime" forKey:field];
-	}
-}
-
-/**
- * Starts asynchronous request.
- *
- * @returns  void
- */
 - (void)startAsynchronous
 {
 	readyToStart = YES;
@@ -133,29 +222,9 @@
 	[super startAsynchronous];
 }
 
-/**
- * Updates the template ID.
- *
- * @param  NSString  Template id (see: https://transloadit.com/templates )
- *
- * @returns  void
- */
 - (void)setTemplateId:(NSString *)templateId
 {
 	[params setObject:templateId forKey:@"template_id"];
-}
-
-/**
- * Checks response the existence of an error.
- *
- * @returns  BOOL
- */
-- (bool)hadError
-{
-	if ([response objectForKey:@"error"]) {
-		return true;
-	}
-	return false;
 }
 
 #pragma mark private
@@ -226,15 +295,6 @@
 	hexBytes = [NSString stringWithUTF8String:strbuf];
 	free(strbuf);
 	return hexBytes;
-}
-
-- (void)dealloc
-{
-	[params release];
-	[response release];
-	[secret release];
-
-    [super dealloc];
-}
+}*/
 
 @end
