@@ -25,15 +25,11 @@
 		C32F6EBF160926F8004BA8A1 /* AFURLConnectionOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = C32F6EB3160926F8004BA8A1 /* AFURLConnectionOperation.m */; };
 		C32F6EC0160926F8004BA8A1 /* AFXMLRequestOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = C32F6EB5160926F8004BA8A1 /* AFXMLRequestOperation.m */; };
 		C32F6EC1160926F8004BA8A1 /* UIImageView+AFNetworking.m in Sources */ = {isa = PBXBuildFile; fileRef = C32F6EB7160926F8004BA8A1 /* UIImageView+AFNetworking.m */; };
-		C3A447DF1516618700A428C4 /* libz.1.2.5.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C3A447DE1516618700A428C4 /* libz.1.2.5.dylib */; };
 		DC70063911F1DE75005D6D1C /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = DC70063811F1DE75005D6D1C /* icon.png */; };
 		DC70065711F1DF59005D6D1C /* Default.png in Resources */ = {isa = PBXBuildFile; fileRef = DC70065611F1DF59005D6D1C /* Default.png */; };
 		DCCDA78511F31BCA001602BB /* TransloaditRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = DCCDA78411F31BCA001602BB /* TransloaditRequest.m */; };
 		DCCDA79C11F3240F001602BB /* Config.m in Sources */ = {isa = PBXBuildFile; fileRef = DCCDA79B11F3240F001602BB /* Config.m */; };
 		DCF0A57A11EFAAC900EDFA28 /* logo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = DCF0A57911EFAAC900EDFA28 /* logo.jpg */; };
-		DCF0A79A11EFD16600EDFA28 /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCF0A79911EFD16600EDFA28 /* CFNetwork.framework */; };
-		DCF0A79C11EFD16F00EDFA28 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCF0A79B11EFD16F00EDFA28 /* SystemConfiguration.framework */; };
-		DCF0A79E11EFD17600EDFA28 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCF0A79D11EFD17600EDFA28 /* MobileCoreServices.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,13 +85,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A447DF1516618700A428C4 /* libz.1.2.5.dylib in Frameworks */,
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 				1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */,
 				288765A50DF7441C002DB57D /* CoreGraphics.framework in Frameworks */,
-				DCF0A79A11EFD16600EDFA28 /* CFNetwork.framework in Frameworks */,
-				DCF0A79C11EFD16F00EDFA28 /* SystemConfiguration.framework in Frameworks */,
-				DCF0A79E11EFD17600EDFA28 /* MobileCoreServices.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -310,7 +302,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = TransloaditIphoneSdk_Prefix.pch;
 				INFOPLIST_FILE = "TransloaditIphoneSdk-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				PRODUCT_NAME = Transloadit;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
@@ -328,7 +320,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = TransloaditIphoneSdk_Prefix.pch;
 				INFOPLIST_FILE = "TransloaditIphoneSdk-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 5.0;
 				PRODUCT_NAME = TransloaditIphoneSdk;
 				PROVISIONING_PROFILE = "";
 			};
