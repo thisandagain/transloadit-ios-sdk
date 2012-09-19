@@ -1,7 +1,7 @@
 #import <QuartzCore/CALayer.h>
 #import "TransloaditRequest.h"
 
-@interface IphoneSdkViewController : UIViewController <UIImagePickerControllerDelegate, UINavigationControllerDelegate> 
+@interface IphoneSdkViewController : UIViewController <TransloaditRequestDelegate>
 
 @property IBOutlet UIButton *button;
 @property IBOutlet UIImageView *thumb;

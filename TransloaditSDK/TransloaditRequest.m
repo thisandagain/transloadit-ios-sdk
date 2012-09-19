@@ -48,13 +48,13 @@ static const NSString *host = @"http://api2.transloadit.com";
  *
  * @returns {block}
  */
-- (void)processFile:(NSURL *)path withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id, id))success failure:(void (^)(id, NSError *))failure
+- (void)processFile:(NSURL *)path withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id, id))success failure:(void (^)(id, id, NSError *))failure
 {
     NSData *data = [NSData dataWithContentsOfURL:path];
     [self processData:data withFileName:filename contentType:mime template:template success:^(id request, id JSON) {
         success(self, JSON);
-    } failure:^(id request, NSError *error) {
-        failure(self, error);
+    } failure:^(id request, id JSON, NSError *error) {
+        failure(self, JSON, error);
     }];
 }
 
@@ -68,7 +68,7 @@ static const NSString *host = @"http://api2.transloadit.com";
  *
  * @returns {block}
  */
-- (void)processData:(NSData *)data withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id, id))success failure:(void (^)(id, NSError *))failure
+- (void)processData:(NSData *)data withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id, id))success failure:(void (^)(id, id, NSError *))failure
 {
     // Set post body
     NSDictionary *params    = @{
@@ -91,13 +91,14 @@ static const NSString *host = @"http://api2.transloadit.com";
     
     // Request operation
     AFJSONRequestOperation *operation = [AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
-        if ([response statusCode] >= 200 && [response statusCode] <= 299) {
-            success(self, JSON);
-        } else {
-            failure(self, nil);
-        }
+        success(self, JSON);
     } failure:^(NSURLRequest *request , NSHTTPURLResponse *response , NSError *error , id JSON) {
-        failure(self, error);
+        failure(self, JSON, error);
+    }];
+    
+    // Progress block
+    [operation setUploadProgressBlock:^(NSInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite) {
+        [self.delegate setProgress:totalBytesWritten/totalBytesExpectedToWrite];
     }];
     
     [operation start];
@@ -172,8 +173,9 @@ static const NSString *host = @"http://api2.transloadit.com";
 
 - (void)dealloc
 {
-    _post = nil;
+    _delegate = nil;
     
+    _post = nil;
     _key = nil;
     _secret = nil;
 }

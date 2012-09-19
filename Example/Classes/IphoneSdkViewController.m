@@ -15,29 +15,37 @@
 	}
 }
 
-#pragma mark helpers
+#pragma mark - UI events
+
+- (IBAction)buttonTouch:(id)sender
+{
+    [self startUpload:nil];
+}
+
+#pragma mark - Private methods
 
 - (void)startUpload:(NSDictionary *)info
 {
 	self.spinner.hidden = YES;
 	self.progressBar.hidden = NO;
 	self.status.text = NSLocalizedString(@"preparing upload", @"");
-
+    
     TransloaditRequest *transloadit = [[TransloaditRequest alloc] initWithCredentials:TransloaditKey secret:TransloaditSecret];
+    transloadit.delegate = self;
     NSData *data = UIImageJPEGRepresentation([UIImage imageNamed:@"logo.jpg"], 0.9f);
     
     [transloadit processData:data withFileName:@"awesomepants.jpg" contentType:@"image/jpg" template:TransloaditTemplateId success:^(id request, id JSON) {
         NSLog(@"Yay! %@", JSON);
-    } failure:^(id request, NSError *error) {
-        NSLog(@"Error: %@", [error localizedDescription]);
+    } failure:^(id request, id JSON, NSError *error) {
+        NSLog(@"Error: %@ | %@", [error localizedDescription], JSON);
     }];
 }
 
-#pragma mark - UI events
+#pragma mark - Delegate methods
 
-- (IBAction)buttonTouch:(id)sender
+- (void)setProgress:(float)currentProgress
 {
-    [self startUpload:nil];
+    self.progressBar.progress = currentProgress;
 }
 
 #pragma mark - Dealloc
