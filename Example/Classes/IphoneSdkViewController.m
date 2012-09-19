@@ -26,10 +26,10 @@
     TransloaditRequest *transloadit = [[TransloaditRequest alloc] initWithCredentials:TransloaditKey secret:TransloaditSecret];
     NSData *data = UIImageJPEGRepresentation([UIImage imageNamed:@"logo.jpg"], 0.9f);
     
-    [transloadit processData:data withFileName:@"awesomepants.jpg" contentType:@"image/jpg" template:TransloaditTemplateId success:^(id request) {
-        NSLog(@"This shit worked!");
+    [transloadit processData:data withFileName:@"awesomepants.jpg" contentType:@"image/jpg" template:TransloaditTemplateId success:^(id request, id JSON) {
+        NSLog(@"Yay! %@", JSON);
     } failure:^(id request, NSError *error) {
-        NSLog(@"Shit is broke: %@", [error localizedDescription]);
+        NSLog(@"Error: %@", [error localizedDescription]);
     }];
 }
 

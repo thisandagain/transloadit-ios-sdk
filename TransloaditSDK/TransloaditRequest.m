@@ -48,11 +48,11 @@ static const NSString *host = @"http://api2.transloadit.com";
  *
  * @returns {block}
  */
-- (void)processFile:(NSURL *)path withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id))success failure:(void (^)(id, NSError *))failure
+- (void)processFile:(NSURL *)path withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id, id))success failure:(void (^)(id, NSError *))failure
 {
     NSData *data = [NSData dataWithContentsOfURL:path];
-    [self processData:data withFileName:filename contentType:mime template:template success:^(id request) {
-        success(self);
+    [self processData:data withFileName:filename contentType:mime template:template success:^(id request, id JSON) {
+        success(self, JSON);
     } failure:^(id request, NSError *error) {
         failure(self, error);
     }];
@@ -68,7 +68,7 @@ static const NSString *host = @"http://api2.transloadit.com";
  *
  * @returns {block}
  */
-- (void)processData:(NSData *)data withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id))success failure:(void (^)(id, NSError *))failure
+- (void)processData:(NSData *)data withFileName:(NSString *)filename contentType:(NSString *)mime template:(NSString *)template success:(void (^)(id, id))success failure:(void (^)(id, NSError *))failure
 {
     // Set post body
     NSDictionary *params    = @{
@@ -86,17 +86,17 @@ static const NSString *host = @"http://api2.transloadit.com";
         [form appendPartWithFileData:data name:@"upload" fileName:filename mimeType:mime];
     }];
     
+    // Force allow "text/plain" as an acceptable content type
+    [AFJSONRequestOperation addAcceptableContentTypes:[NSSet setWithObject:@"text/plain"]];
+    
     // Request operation
     AFJSONRequestOperation *operation = [AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
         if ([response statusCode] >= 200 && [response statusCode] <= 299) {
-            success(self);
+            success(self, JSON);
         } else {
             failure(self, nil);
         }
     } failure:^(NSURLRequest *request , NSHTTPURLResponse *response , NSError *error , id JSON) {
-        NSLog(@"Request: %@", request);
-        NSLog(@"Response: %@", response);
-        NSLog(@"JSON: %@", JSON);
         failure(self, error);
     }];
     
