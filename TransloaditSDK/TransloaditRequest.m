@@ -125,7 +125,7 @@ static const NSString *host = @"http://api2.transloadit.com";
 
 - (NSString *)generateJsonString:(id)dict
 {
-    NSString *json = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:dict options:nil error:nil] encoding:NSUTF8StringEncoding];
+    NSString *json = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:dict options:0 error:nil] encoding:NSUTF8StringEncoding];
     return json;
 }
 
